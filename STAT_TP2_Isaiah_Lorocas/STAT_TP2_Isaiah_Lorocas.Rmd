@@ -1,0 +1,407 @@
+---
+title: "TP2"
+author: "Simon Darnault, Lorenzo Lucas -- Roblot"
+date: "2024-03-07"
+output:
+  pdf_document:
+    toc: true
+  html_document:
+    toc: true
+header-includes:
+- \usepackage[utf8]{inputenc} # Caractères suivant la norme usuelle
+- \usepackage{amssymb} # Des trucs de maths et d'affichage
+- \usepackage{amsmath}
+- \usepackage{mathrsfs}
+- \usepackage{stmaryrd}
+- \usepackage{xstring}
+- \usepackage{bbold} # Permet de bien afficher la fonction indicatrice
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+# Théorème Central Limite et Estimation Monte Carlo
+
+## Exercice 7
+
+Soit $\alpha\in\mathbb{R}$. Par définition de la densité de $X \sim \mathrm{Pareto}(a,\alpha)$, notée $f$, on a :
+
+\begin{align*}
+\forall x\in\mathbb{R},\, F_{X}(x) = \mathbb{P}(X \leqslant x) &= \int_{-\infty}^{x} f(t;a,\alpha) \,\mathrm{d}t &\text{(définition)} \\
+  &= \int_{-\infty}^{x}\alpha \frac{a^{\alpha}}{t^{\alpha + 1}} \mathbb{1}_{[a,+\infty[}(t)\,\mathrm{d}t &\text{(définition de la densité de la loi de Pareto)} \\
+  &= \alpha a^{\alpha} \int_{a}^{x} t^{-\alpha -1}\,\mathrm{d}t &\text{(linéarité de l'intégrale et cas x $\geqslant$ a)} \\
+  &= \alpha a^{\alpha} \left[-\frac{t^{-\alpha}}{\alpha}\right]_{t = a}^{x} \\
+  &= 1 - \left(\frac{a}{x}\right)^{\alpha} &\text{(après simplification)}
+\end{align*}
+
+On obtient alors la fonction de répartition de la loi de Pareto :
+
+$$ \forall x\in\mathbb{R},\, F_X(x) = \left(1-{\left(\frac{a}{x}\right)}^{\alpha}\right)\mathbb{1}_{[a,+\infty[}(x) $$
+
+On suppose ici que $\alpha > 1$. On calcule alors l'espérance théorique d'une loi de Pareto $X$ :
+
+\begin{align*}
+\mathbb{E}(X)
+  &= \int_{\mathbb{R}} x f(x;a,x) \,\mathrm{d}x &\text{(définition de l'espérance)} \\
+  &= \int_{\mathbb{R}} \mathbb{P}(X > x) \,\mathrm{d}x &\text{(propriété de l'espérance pour une variable aléatoire positive)} \\
+  &= \int_{\mathbb{R}} 1 - \mathbb{P}(X \leqslant x) \,\mathrm{d}x &\text{(événement complémentaire)} \\
+  &= \int_{\mathbb{R}} 1 -   \left(1-{\left(\frac{a}{x}\right)}^{\alpha}\right)\mathbb{1}_{[a,+\infty[}(x) \,\mathrm{d}x &\text{(résultat précédent)} \\
+  &= \int_{0}^{a}\mathrm{d}x + \int_{a}^{+\infty}\left(\frac{a}{x}\right)^{\alpha}\,\mathrm{d}x &\text{(linéarité de l'intégrale)} \\
+  &= a + a^{\alpha} \left[\frac{x^{1-\alpha}}{1-\alpha}\right]_{x = a}^{+\infty} \\
+  &= a + \frac{a}{\alpha - 1} &\text{(calcul de limites)} \\
+  &= \frac{(\alpha -1)a + a}{\alpha -1} \\
+  &= \frac{\alpha a}{\alpha - 1}
+\end{align*}
+
+Ainsi :
+
+$$ \boxed{\mathbb{E}(X) = \frac{\alpha a}{\alpha - 1}}$$
+
+
+Nous aurions pu également effectuer le calcul à l'aide de la densité de $X$ :
+
+\begin{align*}
+\mathbb{E}(X)
+  &= \int_{\mathbb{R}} x f(x;a,x) \,\mathrm{d}x &\text{(définition de l'espérance)} \\
+  &= \int_{\mathbb{R}}\alpha \frac{a^{\alpha}}{x^{\alpha}} \mathbb{1}_{[a,+\infty[}\,\mathrm{d}x &\text{(définition de la densité de la loi de Pareto)} \\
+  &= \alpha a^{\alpha} \int_{a}^{+\infty} x^{-\alpha}\,\mathrm{d}x &\text{(linéarité de l'intégrale)}\\
+  &= \alpha a^{\alpha} \left[\frac{x^{1-\alpha}}{1-\alpha}\right]_{x = a}^{+\infty} \\
+  &= 
+  \left\{\begin{array}{cl}
+    \boxed{+\infty} & \text{ si } \alpha \leqslant 1 \\
+    \frac{\alpha a^{\alpha}}{\alpha - 1} a^{1-\alpha} = \boxed{\frac{\alpha a}{\alpha - 1}} & \text{ si } \alpha > 1
+  \end{array}\right. & \text{(calcul de limites)}
+\end{align*}
+
+## Exercice 8
+
+Pour simuler la loi de Pareto, nous avons téléchargé le package `EnvStats`.
+
+```{r}
+library(EnvStats)
+```
+
+Nous noterons $B = 500$ le nombre d'échantillons i.i.d de loi commune $\mathrm{Pareto}(a,\alpha)$ de taille $n$ avec $n\in\{20,100,200\}$.
+
+```{r B}
+B <- 500
+```
+
+La question précédente assure qu'il est pertinent de prendre $\alpha > 1$. Nous choisirons alors, arbitrairement, $a = 4$ et $\alpha = 5$.
+
+```{r alpha a}
+a <- 4
+alpha <- 5
+```
+
+De ce fait, on note $(X_{j,i})_{(j,i)}$ la data frame répertoriant $i$ échantillons de taille $n$.
+
+```{r pareto n20}
+# Pareto : 500 échantillons de taille n = 20
+n <- 20
+X <- data.frame(matrix(nrow = n, ncol = B))
+
+# Stockage des simulations
+for(i in 1:B) {
+  X[,i] <- rpareto(n,a,alpha) # n Pareto(a=4,alpha=5)
+}
+
+head(X[1:5,1:8]) # Affiche le début des 8 premiers échantillons
+```
+
+On rappelle alors la formule de la moyenne empirique :
+
+$$ \boxed{\forall n\in \{20,100,200\},\, \forall i\in[\![1,B]\!],\, \bar{X}_{n,i} = \frac{1}{n}\sum_{j = 1}^{n}X_{j,i}} $$
+Ce qui donne, en `R` :
+
+```{r moyEmp n20}
+moyEmp <- rep(0,B)
+
+for(i in 1:B) { 
+  for(j in 1:n) {
+    moyEmp[i] = moyEmp[i] + X[j,i]
+  }
+  moyEmp[i] = moyEmp[i]/n
+}
+
+moyEmp_n20 <- moyEmp # On stocke la valeur pour le cas n=20 (histogramme de l'exercice 9)
+
+head(moyEmp) # Affiche les premières valeurs de \bar{X}_{n,i}
+```
+
+De même, nous pouvons alors calculer la variance empirique :
+
+$$ \boxed{\forall n\in \{20,100,200\},\, \forall i\in[\![1,B]\!],\, S_{n,i} = \frac{1}{n}\sum_{j = 1}^{n}\left( X_{j,i} -  \bar{X}_{n,i} \right)^2} $$
+
+Soit :
+
+```{r varEmp n20}
+varEmp <- rep(0,B)
+
+for(i in 1:B) {
+  X_barre <- moyEmp[i]
+  for(j in 1:n) {
+    varEmp[i] <- varEmp[i] + (X[j,i] - X_barre)^2
+  }
+  varEmp[i] <- varEmp[i]/n
+}
+
+head(varEmp) # Affiche les premières valeurs de S_{n,i}
+```
+
+Ainsi, nous pouvons simuler cette expérience pour $n = 100$ et $n = 200$.
+
+\
+
+- Cas $n = 100$
+
+```{r n100}
+# Pareto : 500 échantillons de taille n = 100
+n <- 100
+X <- data.frame(matrix(nrow = n, ncol = B))
+
+# Stockage des simulations
+for(i in 1:B) {
+  X[,i] <- rpareto(n,a,alpha) # n Pareto(a=4,alpha=5)
+}
+
+head(X[1:5,1:8]) # Affiche le début des 8 premiers échantillons
+
+
+moyEmp <- rep(0,B)
+
+for(i in 1:B) { 
+  for(j in 1:n) {
+    moyEmp[i] = moyEmp[i] + X[j,i]
+  }
+  moyEmp[i] = moyEmp[i]/n
+}
+
+moyEmp_n100 <- moyEmp # On stocke la valeur pour le cas n=100 (histogramme de l'exercice 9)
+
+head(moyEmp) # Affiche les premières valeurs de \bar{X}_{n,i}
+
+
+varEmp <- rep(0,B)
+
+for(i in 1:B) {
+  X_barre <- moyEmp[i]
+  for(j in 1:n) {
+    varEmp[i] <- varEmp[i] + (X[j,i] - X_barre)^2
+  }
+  varEmp[i] <- varEmp[i]/n
+}
+
+head(varEmp) # Affiche les premières valeurs de S_{n,i}
+```
+
+\
+
+- Cas $n = 200$
+
+```{r n200}
+# Pareto : 500 échantillons de taille n = 200
+n <- 200
+X <- data.frame(matrix(nrow = n, ncol = B))
+
+# Stockage des simulations
+for(i in 1:B) {
+  X[,i] <- rpareto(n,a,alpha) # n Pareto(a=4,alpha=5)
+}
+
+head(X[1:5,1:8]) # Affiche le début des 8 premiers échantillons
+
+
+moyEmp <- rep(0,B)
+
+for(i in 1:B) { 
+  for(j in 1:n) {
+    moyEmp[i] = moyEmp[i] + X[j,i]
+  }
+  moyEmp[i] = moyEmp[i]/n
+}
+
+moyEmp_n200 <- moyEmp # On stocke la valeur pour le cas n=200 (histogramme de l'exercice 9)
+
+head(moyEmp) # Affiche les premières valeurs de \bar{X}_{n,i}
+
+
+varEmp <- rep(0,B)
+
+for(i in 1:B) {
+  X_barre <- moyEmp[i]
+  for(j in 1:n) {
+    varEmp[i] <- varEmp[i] + (X[j,i] - X_barre)^2
+  }
+  varEmp[i] <- varEmp[i]/n
+}
+
+head(varEmp) # Affiche les premières valeurs de S_{n,i}
+```
+
+
+## Exercice 9
+
+On obtient les histogrammes suivants :
+
+```{r histogramme ex9}
+par(mfrow=c(1,3)) # 1 x 3 panel
+
+hist(moyEmp_n20, main = "Hist. moyEmp | n=20")
+abline(v=5, col="gray", lty=5)
+hist(moyEmp_n100, main = "Hist. moyEmp | n=100")
+abline(v=5, col="gray", lty=5)
+hist(moyEmp_n200, main = "Hist. moyEmp | n=200")
+abline(v=5, col="gray", lty=5)
+```
+
+Le résultat est cohérent avec l'étude théorique. En effet, avec ces mêmes paramètres, on a :
+
+$$ \boxed{\mathbb{E}(X) = \frac{5 \times 4}{4} = 5} $$
+
+## Exercice 10
+
+On a supposé que les $X_{n,i}$ sont i.i.d et suivent tous la loi de $\mathrm{Pareto}(a,\alpha)$. En supposant qu'on ait $\alpha > 2$, leur espérance et leur variance sont finies.
+
+On pose :
+
+\begin{align*}
+a_n = \mathbb{E}(X_{n,i}) = \frac{\alpha a}{\alpha - 1} \text{ et } b_n 
+  &= \frac{1}{\sqrt{n}}\sqrt{\mathbb{V}(X_{n,i})} \\
+  &= \frac{1}{\sqrt{n}}\sqrt{\left(\frac{a}{\alpha - 1}\right)^2\frac{\alpha}{\alpha - 2}} \\
+  &= \frac{a}{\alpha - 1}\sqrt{\frac{\alpha}{n(\alpha - 2)}}
+\end{align*}
+
+Soit :
+
+$$ \boxed{a_n = \frac{\alpha a}{\alpha - 1}} \text{ et } \boxed{b_n = \frac{a}{\alpha - 1}\sqrt{\frac{\alpha}{n(\alpha - 2)}}} $$
+On note $m = \mathbb{E}(X_{n,i}) < +\infty$ et $\sigma^2 = \mathbb{V}(X_{n,i}) < +\infty$. Ainsi, le Théorème Central Limite nous donne :
+
+$$ U_{n,i} = \frac{\bar{X}_{n,i} - a_n}{b_n} = \sqrt{n}\frac{\bar{X}_{n,i} - m}{\sigma} \, \underset{n\to+\infty}{\overset{\mathcal{L}}{\longrightarrow}} \,\mathcal{N}(0,1) $$
+Soit :
+
+$$ \boxed{U_{n,i} \, \underset{n\to+\infty}{\overset{\mathcal{L}}{\longrightarrow}} \,\mathcal{N}(0,1)}$$
+
+Ainsi, on peut tracer les histogrammes des moyennes empiriques normalisées $U_{n,i}$ et la distribution théorique approchée.
+
+```{r normalisee n20}
+n <- 20
+
+a_n <- (alpha*a/(alpha - 1))
+b_n <- (a/(alpha - 1))*sqrt(a/(n*(alpha - 2)))
+U_ni <- (moyEmp_n20 - a_n)/b_n
+
+h <- hist(U_ni, breaks = 30, main = "Histogramme U_{n,i} | n=20", prob=TRUE)
+lines(density(U_ni), col= "blue")
+curve(dnorm(x,0,1), add=TRUE, col = "red")
+```
+
+```{r normalisee n100}
+n <- 100
+
+a_n <- (alpha*a/(alpha - 1))
+b_n <- (a/(alpha - 1))*sqrt(a/(n*(alpha - 2)))
+U_ni <- (moyEmp_n100 - a_n)/b_n
+
+h <- hist(U_ni, breaks = 30, main = "Histogramme U_{n,i} | n=100", prob=TRUE)
+lines(density(U_ni), col= "blue")
+curve(dnorm(x,0,1), add=TRUE, col = "red")
+```
+
+```{r normalisee n200}
+n <- 200
+
+a_n <- (alpha*a/(alpha - 1))
+b_n <- (a/(alpha - 1))*sqrt(a/(n*(alpha - 2)))
+U_ni <- (moyEmp_n200 - a_n)/b_n
+
+h <- hist(U_ni, breaks = 30, main = "Histogramme U_{n,i} | n=200", prob=TRUE)
+lines(density(U_ni), col= "blue")
+curve(dnorm(x,0,1), add=TRUE, col = "red")
+```
+
+On constate que pour $n$ suffisamment grand, l'approximation faite tend effectivement vers la loi normale $\mathcal{N}(0,1)$. La qualité de l'approximation est alors bien meilleure.
+
+\newpage
+# Quand le Théorème Central Limite ne s'applique pas
+
+## Exercice 11
+
+On note $n$ la taille de l'échantillon choisi dans toute cette partie. On choisit dans cette question $n = 50$.
+```{r C(2)}
+theta <- 2 # On fixe theta à 2 dans le cadre de l'exercice
+n <- 50 
+X <- rcauchy(n, theta) # On effectue 50 simulations
+moy <- mean(X) # On calcule la moyenne empirique des 50 simulations
+moy
+```
+
+### Exercice 12
+
+On fait varier la taille de l'échantillon avec $n = 100$, $1000$ et $10000$.
+
+```{r varC(2)}
+list_n <- c(100, 1000, 10000)
+list_moy <- 1:3
+for (i in 1:3) {
+  X <- rcauchy(list_n[i], theta)
+  list_moy[i] <- mean(X)  # Calcul de la valeur moyenne de la simulation
+}
+list_moy
+```
+
+On remarque alors que les moyennes empiriques obtenues sont diverses et semblent être aléatoires, peu importe la taille $n$ de l'échantillon considéré. La méthode Monte Carlo ne semble alors pas s'appliquer ici. On peut alors émettre l'hypothèse suivante : l'espérance de la loi de Cauchy de paramètre $2$ est infinie.
+
+## Exercice 13
+
+On sait d'après le cours que l'espérance d'un variable aléatoire $X$ suivant la loi de Cauchy de paramètre $2$ est :
+$$ \mathbb{E}[X]=\dfrac{\phi_{2}'(0)}i $$
+Or la fonction caractéristique d'une loi de Cauchy $\mathcal{C}(\theta)$ s'écrit : $\forall t\in\mathbb{R},\,\phi_{\theta}(t) = \mathrm{exp}(i\theta t - |t|)$. 
+A cause du terme $|t|$, cette fonction n'est pas dérivable en $0$, et par conséquent, le moment d'ordre 1 de cette probablilité n'existe pas.
+
+## Exercice 14
+
+La variable $X$ suivant une loi de Cauchy, la fonction de répartition de $X$ est alors : $$\forall x\in\mathbb{R},\, F_X(x)=\dfrac12+\dfrac1{\pi}arctan(x-\theta)$$
+Alors, la valeur médiane $x_M$ étant caractérisée par : $F_X(x_M) = 0,5$, on a :
+\begin{align*}
+\dfrac12+\frac1{\pi}\arctan(x_M-\theta) = 0,5 &\Leftrightarrow \frac1{\pi}\arctan(x_M-\theta) = 0 \\
+&\Leftrightarrow arctan(x_M - \theta) = 0 \\
+&\Leftrightarrow x_M - \theta = 0 \\
+&\Leftrightarrow x_M = \theta
+\end{align*}
+
+Alors, la médiane d'une loi de Cauchy $\mathcal{C}(\theta)$ vaut $\theta$.
+
+## Exercice 15
+
+On considère l'estimateur $\hat{\theta}=\underset{i\in[\![1,n]\!]}{med}(X_i)$, qui calcule empiriquement la médiane des $X_i$.
+
+```{r estimateur}
+N <- 1000 # On réalise N fois la simulation à n valeurs
+theta <- 2 # On choisit à nouveau theta = 2
+liste_n <- c(20,100,1000)
+moy_cauchy <- 1:3
+par(mfrow=c(1,2))
+
+for (n in liste_n) {
+  med_emp<-1:N
+  for (i in 1:N) {
+    Xni <- rcauchy(n, theta)
+    med_emp[i] <- median(Xni) # Calcul de la valeur médiane de la simulation à n lancers
+  }
+  hist(med_emp, breaks = 20, main = paste("Répartition des médianes\n empiriques de loi de Cauchy\npour n = ", n))
+  boxplot(med_emp) # Affichage des écarts interquartiles
+  cat("La moyenne empirique vaut =", med_emp[i], "pour n =", n, ".")
+}
+```
+
+Après ces différentes simulations, on constate que la médiane empirique est effectivement proche de $\theta$. On remarque également que plus on réalise de simulations, plus l'écart interquartile diminue. On peut alors considérer cet estimateur comme un bon estimateur.
+
+
+
+

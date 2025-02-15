@@ -1,0 +1,246 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+# TP 1 Statistiques
+
+## Opération scalaire
+
+Ex1:
+
+```{r}
+x = 3     
+sin(2*pi*x^2)/5       
+?Arithmetic
+```
+
+**Arithmétique**
+
+| Type                      | Signe |
+|---------------------------|-------|
+| Addition                  | \+    |
+| Soustraction              | --    |
+| Multiplication            | \*    |
+| Division                  | /     |
+| Exposant                  | \^    |
+| Modulo                    | %%    |
+| Division de nombre entier | %/%   |
+
+*Remarque: le modulo est le reste d'une division*
+
+##Opération des vecteurs
+
+```{r}
+ ## Créer un vecteur en R
+ x = c(1, 2, 3, 4, 5)
+ ## Pour acceder à un élément de vecteur x
+ x[3]
+ ## Addition : faire la somme des éléments
+ sum_x <- x[1] + x[2] + x[3] + x[4] + x[5]
+ sum_x
+ ## Vecteurs des charactères
+ petit_dejeuner <- c("croissant", "pain","cereales", "lait", "jus d'orange",
+ "café", "chocolat chaud")
+ print(petit_dejeuner)
+```
+
+Ex2:
+
+```{r}
+ma_commande<-c( petit_dejeuner[3], petit_dejeuner[6], petit_dejeuner[4])
+#ou
+ma_commande <- petit_dejeuner[c(3, 6, 4)]
+
+print(ma_commande)
+```
+
+##Boucles Ex3:
+
+```{r}
+ x<-seq(3, 20,by=4)
+ x
+  ## la fonction seq() en indiquant dans un premier temps le nombre de départ, puis le nombre d’arrivée, finalement indiquez la taille du saut après avoir écrit "by="
+
+ sum_x_carre<-0
+ n<-length(x)
+ for(i in 1:n){
+   sum_x_carre <- sum_x_carre+x[i]^2
+ }
+ sum_x_carre
+ 
+```
+
+## Fonctions
+
+```{r}
+my_mean<-function(a)
+ {
+ sum_a<-0
+ n<-length(a)
+ for(i in 1:n){
+ sum_a<-sum_a + a[i]
+ }
+ return(sum_a/n) ##output
+ }
+ my_mean(x)##fonction my_mean() évaluée en x
+```
+
+Ex4:
+
+```{r}
+my_mean<-function(a)
+ {
+ sum_a<-0
+ n<-length(a)
+ for(i in 1:n){
+ sum_a<-sum_a + a[i]
+ }
+ return(sum_a/n) ##output
+}
+
+
+my_stdev<-function(a)
+ {
+ sum_a_carre<-0
+ n<-length(a)
+ for(i in 1:n){
+ sum_a_carre<-sum_a_carre + a[i]^2}
+ return(sqrt(sum_a_carre/n-my_mean(a)^2))
+}
+my_stdev(x)
+```
+
+## Simuler des données
+
+```{r}
+ x<-rnorm(30,0,0.5)
+ y<-runif(25,-2,2)
+ x
+ y
+```
+
+Ex5:
+
+```{r}
+help("rnorm")
+help("runif")
+```
+
+##Visualisation des données
+
+Ex6:
+
+```{r}
+plot(x) #Nuage de points. Cette méthode peut être assez pratique pour déceler des relations linéaires ou non linéaires
+
+barplot(x) #Graphique en barres
+
+boxplot(x) #Boîte à moustache
+# Elles sont pratiques parce qu’elles permettent en un coup d'œil d'observer une distribution. Vous pouvez avoir plus d'explications ici: https://www.stat4decision.com/fr/le-box-plot-ou-la-fameuse-boite-a-moustache/
+
+hist(x) #Histogramme.  Cela permet de voir la distribution de la variable sur toutes ses valeurs
+```
+
+Ex7:
+
+```{r}
+hist(y,breaks = seq(-2,2,length = 11))
+
+```
+
+##Statistiques numériques récapitulatives
+
+```{r}
+c(mean(x), var(x), sd(x), min(x), max(x), median(x))
+summary(x)
+```
+
+Ex8: En théorie, X\~N(0,0.25) donc des vraies valeurs mean(x)=0 et sd(x)=0.5. Par calculs numériques, ca donne la moyenne et son écart-type de x sont -0.02276773 et 0.54415555, donc proche de ses vraies valeurs.
+
+*Attention : la fonction var() en R calcule la variance empirique corrigée*
+
+## Vecteurs et matrices
+
+```{r}
+xmat = matrix(data=c(3,7, 2, 9, 1, 5), ncol=2)
+ xmat
+ xmat[,2]
+
+```
+
+Ex9:
+
+```{r}
+dim(xmat)
+xmat[2,2]
+```
+
+##Data frame
+
+```{r}
+mydf = data.frame(x=runif(10), y=rnorm(10), z=rep(c('f','m'), 5))
+ mydf
+ mydf$y #extraire y
+ mydf["z"] #extraire la chaîne de caractères z
+ str(mydf) #donne la structure des données
+ head(mydf) #extraire des premiers éléments
+ tail(mydf) #extraire des derniers éléments
+```
+
+Ex10:
+
+```{r}
+boxplot(y~z,data=mydf)
+#ou
+l <- list(f = mydf$y[mydf$z == "f"], m = mydf$y[mydf$z == "m"])
+boxplot(l, ylab = "y")
+```
+
+Ex11:
+
+```{r}
+mydf_sim<-data.frame(x=rbinom(50,1,0.4), y=rpois(50,2.5))
+head(mydf_sim,5)
+```
+
+## Lists
+
+```{r}
+xlist = list(a=1, b=c(2,3), c=seq(0,1,length=5))
+ xlist
+ names(xlist)
+ xlist$b #extrait de la liste
+```
+
+##Opérations multiples efficaces
+
+```{r}
+apply(xmat, 2, mean) ## compute sample mean for each column
+
+ lapply(1:n, function(i) {i^2})
+```
+
+Ex12:
+
+```{r}
+x <- seq(3, 20, by = 4)
+my_stdev_without_for <- function(a) {
+  n <- length(a)
+  sum_a_carre <- sum(sapply(a, function(a_i) {a_i^2}))
+  return(sqrt(sum_a_carre / n - my_mean(a)^2))
+}
+my_stdev_without_for(x)
+```
+
+##Visualisation avancée Ex13:
+
+```{r}
+#install.packages("ggplot2") ## install the package
+ library(ggplot2) ## load the package
+ ?mpg ## dataset
+ str(mpg)
+ ggplot(data=mpg,
+ mapping = aes(x=class, y=hwy)) +
+ geom_boxplot()
+```
