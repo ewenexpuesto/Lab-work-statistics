@@ -1,0 +1,73 @@
+---
+title: "TP4 Statistiques noté : Estimation et l'intervalle de confiance"
+date: "11 avril 2025"
+author: "Nom1Prenom1-Nom2Prenom2"
+output: pdf_document
+urlcolor: blue
+linkcolor: red
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results="hide", eval=FALSE)
+```
+
+## Estimateur du maximum de vraisemblance
+
+Soit $X_1, \ldots, X_n$ un échantillon de normale $X\sim \mathcal{N}(\theta,\theta^2)$ où $\theta$ est un réel strictement positif. Nous voulons estimer $\theta$ à partir d'une réalisation de cet échantillon $x=(x_1, \ldots, x_n)$ de $X$.
+
+**Ex1** Donner une expression explicite de l'estimateur du maximum de vraisemblance pour $\theta$.
+
+$$ \hat{\theta}_n^{MV} = \hat{\theta}_n^{MV}(X_1,...,X_n) = ?$$
+
+**Ex2.** Simuler un échantillon i.i.d de $X$ de taille $n=50$ avec $\theta =1$ en utilisant `rnorm` et donner une estimation de $\theta$ obtenue par les calcules dans l'**Ex1**. Que remarquez-vous ?
+```{r}
+n <- 
+theta <- 
+x <- 
+
+theta_MV <-
+thetha_MV  
+```
+
+**Ex3.** Créer une fonction de vraisemblance ou log de la vraisemblace, nommée `L_norm`, en fonction de $(\theta, x)$, qui donne la vraisemblance d'un échantillon $x=(x_1,\ldots,x_n)$ pour une valeur donnée de $\theta$.
+
+```{r}
+L_norm <- function(theta, x){
+  ...
+  return(...)
+}
+```
+
+**Ex4.**. Pour l'échantillon généré dans l'**Ex2**, calculer la vraisemblance de cet échantillon des normales de paramètre $\theta$ (le range des valeurs de $\theta$ à votre choix). Tracer la courbe des valeurs calculées en fonction de $\theta$. Que remarquez-vous?
+```{r}
+thetavec = seq(...,...,by=...)
+L = sapply(thetavec, L_norm, x=...)
+L
+plot(...)
+```
+
+**Ex5.**. En utilisant la fonction `optim` de R, trouvez la valeur de $\theta$ la plus probable d'avoir généré cet échantillon.
+
+```{r}
+mL_norm <- function(theta,x){ -L_norm(theta,x) }
+## optimization standard (minimization)
+p0 = ... # valueur initiale pour l'algorithme
+res = optim(p0, mL_norm, x=x, method = "...",...)
+res
+```
+
+**Ex6.** Faire varier les échantillons de taille $n$ allant de $n=10$ à $n=2000$ et comparer l'écart entre la valeur théorique attendue, l'estimation obtenue dans l'**Ex1** et la valeur obtenue pqr `optim`. Que remarquez-vous? Sont-ils constistents ?
+
+
+## Information de Fisher et l'Intervalle de confiance
+
+On se rappelle que l'Information de Fisher associée au modèle au point $\theta$ est
+$$I(\theta) = \mathbb{E}_\theta\left[ \left(\nabla_\theta\mathcal{L}(X;\theta)\right)^2\right] = - \mathbb{E}_\theta\left[\nabla_\theta^2\mathcal{L}(X;\theta)\right].$$
+
+**Ex7.** Montrer théoriquement que $I(\theta) = \frac{3}{\theta^2}$.
+
+**Ex8.** Faire un histogramme de $\sqrt{nI(\theta)}(\hat{\theta}_n^{MV} - \theta)$ et superposer la denstité théorique de la loi normale standard sur l'histogramme. Expliquer les plots obtenus.
+
+**Ex9** Donner les intervalles de confiance de niveau 0.90 pour le paramètre $\theta$.
+
+**Ex10.** Pour $n$ donné, simuler 500 échantillons et obtener des intervalles de confiance. Compter le nombre de fois où l'intervalle contient le vrai paramètre. Quelle est votre conclusion?
