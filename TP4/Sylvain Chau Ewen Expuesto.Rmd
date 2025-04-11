@@ -19,45 +19,87 @@ Soit $X_1, \ldots, X_n$ un échantillon de normale $X\sim \mathcal{N}(\theta,\th
 
 $$ \hat{\theta}_n^{MV} = \hat{\theta}_n^{MV}(X_1,...,X_n) = ?$$
 
-**Ex2.** Simuler un échantillon i.i.d de $X$ de taille $n=50$ avec $\theta =1$ en utilisant `rnorm` et donner une estimation de $\theta$ obtenue par les calcules dans l'**Ex1**. Que remarquez-vous ?
-```{r}
-n <- 
-theta <- 
-x <- 
+**Fonction de vraisemblance :**
 
-theta_MV <-
-thetha_MV  
+Soit $X_1, \ldots, X_n \sim \mathcal{N}(\theta, \theta^2)$ indépendants. La densité de chaque $X_i$ est :
+
+$$f(x_i; \theta) = \frac{1}{\sqrt{2\pi} \theta} \exp\left( -\frac{(x_i - \theta)^2}{2\theta^2} \right)$$
+
+Donc la **fonction de vraisemblance** est :
+
+$$L(X_1,...,X_n,\theta) = \prod_{i=1}^n f(x_i; \theta) = \left( \frac{1}{\sqrt{2\pi} \theta} \right)^n \exp\left( -\frac{1}{2\theta^2} \sum_{i=1}^n (x_i - \theta)^2 \right)$$
+
+Donc la **log-vraisemblance** est : 
+
+$$\ell(X_1,...,X_n,\theta) = -n \log(\sqrt{2\pi}\theta) - \frac{1}{2\theta^2} \sum_{i=1}^n (x_i - \theta)^2 = -n \log(\sqrt{2\pi}\theta) - \frac{1}{2\theta^2}(\sum_{i=1}^n x_i^2-2\sum_{i=1}^n x_i\theta+n\theta^2)$$
+
+La dérivée de cette expression doit être nulle pour trouver le **maximum de vraisemblance**, donc on doit résoudre : 
+
+$$-\frac{n}{\theta} + \frac{1}{\theta^{3}} \sum_{i=1}^n x_i^2 - \frac{1}{\theta^2}\sum_{i=1}^n x_i=0$$ 
+$$n\theta^2 + \theta \sum_{i=1}^n x_i - \sum_{i=1}^n x_i^2 = 0$$
+
+**Estimateur du maximum de vraisemblance :**
+
+$$\boxed{ \hat{\theta}_n^{MV} = \frac{\sum_{i=1}^n X_i + \sqrt{ \left( \sum_{i=1}^n X_i \right)^2 - 4n^2 } }{2n} }$$
+
+**Ex2.** Simuler un échantillon i.i.d de $X$ de taille $n=50$ avec $\theta =1$ en utilisant `rnorm` et donner une estimation de $\theta$ obtenue par les calculs dans l'**Ex1**. Que remarquez-vous ?
+```{r}
+n <- 50
+theta <- 1
+x <- rnorm(n, mean = theta, sd = theta^2)
+
+S <- sum(x)
+theta_MV <- (S + sqrt(S^2 - 4 * n^2)) / (2 * n)
+theta_MV
 ```
+
+On remarque que **l'expression sous la racine peut être négative** donc il y a un problème si l'on ne le vérifie pas : “NaNs produced”
 
 **Ex3.** Créer une fonction de vraisemblance ou log de la vraisemblace, nommée `L_norm`, en fonction de $(\theta, x)$, qui donne la vraisemblance d'un échantillon $x=(x_1,\ldots,x_n)$ pour une valeur donnée de $\theta$.
 
 ```{r}
-L_norm <- function(theta, x){
-  ...
-  return(...)
+L_norm <- function(x, theta) {
+  if (theta <= 0) return(-Inf) # utile pour la question 5, sinon on obtient Nans
+  n <- length(x)
+  sum_2 <- sum((x - theta)^2)
+  log_vraisemblance <- -n * log(theta) - (1 / (2 * theta^2)) * sum_2 # en supposant theta strictement positif
+  return(log_vraisemblance)
 }
 ```
 
 **Ex4.**. Pour l'échantillon généré dans l'**Ex2**, calculer la vraisemblance de cet échantillon des normales de paramètre $\theta$ (le range des valeurs de $\theta$ à votre choix). Tracer la courbe des valeurs calculées en fonction de $\theta$. Que remarquez-vous?
 ```{r}
-thetavec = seq(...,...,by=...)
-L = sapply(thetavec, L_norm, x=...)
+thetavec = seq(0.5,1.5,by=0.01)
+L = sapply(thetavec, L_norm, x=x)
 L
-plot(...)
+plot(thetavec, L, xlab="theta", ylab="log-vraisemblance", main="Log-vraisemblance de theta")
 ```
+Après avoir testé plusieurs valeurs de bornes, on a trouvé les bornes optimales entre $0,5$ et $1,5$
 
 **Ex5.**. En utilisant la fonction `optim` de R, trouvez la valeur de $\theta$ la plus probable d'avoir généré cet échantillon.
 
 ```{r}
-mL_norm <- function(theta,x){ -L_norm(theta,x) }
+mL_norm <- function(x,theta){ -L_norm(x,theta) } # j'ai inversé le sens des arguments pour correspondre à ma fonction L_norm
 ## optimization standard (minimization)
-p0 = ... # valueur initiale pour l'algorithme
-res = optim(p0, mL_norm, x=x, method = "...",...)
+p0 = 1 # valueur initiale pour l'algorithme
+res = optim(p0, mL_norm, x=x, method = "Brent", lower = 0.5, upper = 1.5)
 res
 ```
 
 **Ex6.** Faire varier les échantillons de taille $n$ allant de $n=10$ à $n=2000$ et comparer l'écart entre la valeur théorique attendue, l'estimation obtenue dans l'**Ex1** et la valeur obtenue pqr `optim`. Que remarquez-vous? Sont-ils constistents ?
 
+```{r}
+for (i in 10:2000) {
+    n <- i
+    theta <- 1
+    x <- rnorm(n, mean = theta, sd = theta^2)
+    p0=1
+    res[i] <- optim(p0, mL_norm, x=x, method = "Brent", lower = 0.5, upper = 1.5)$par
+}
+plot(seq(10, 2000, by = 1), res[10:2000], xlab="n", ylab="optimized theta", main="Optimized theta vs n")
+```
+
+On remarque que plus $n$ augmente, plus le $\theta$ optimal tend vers $1$, et plus le résultat est consistant : l'estimateur converge absolument en loi vers le paramètre $\theta=1$.
 
 ## Information de Fisher et l'Intervalle de confiance
 
@@ -66,7 +108,38 @@ $$I(\theta) = \mathbb{E}_\theta\left[ \left(\nabla_\theta\mathcal{L}(X;\theta)\r
 
 **Ex7.** Montrer théoriquement que $I(\theta) = \frac{3}{\theta^2}$.
 
+VOIR PDF
+
 **Ex8.** Faire un histogramme de $\sqrt{nI(\theta)}(\hat{\theta}_n^{MV} - \theta)$ et superposer la denstité théorique de la loi normale standard sur l'histogramme. Expliquer les plots obtenus.
+
+```{r}
+theta <- 1
+n <- 1000
+
+# Fonction pour calculer l'EMV
+emv <- function(x) {
+  sum_x <- sum(x)
+  sum_x2 <- sum(x^2)
+  return((-sum_x + sqrt(sum_x^2 + 4*length(x)*sum_x2)) / (2*length(x)))
+}
+
+fisher_info <- 1.5 * n / theta^2
+
+seq(10, 2000, by = 1)
+for (i in 1:2000) {
+  x <- rnorm(n, mean=theta, sd=theta)
+  normalized_deviations[i] <- sqrt(fisher_info) * (emv(x) - theta)
+}
+
+
+par(mfrow=c(1,2), mar=c(4,4,2,1))
+
+hist(normalized_deviations, freq=FALSE, main="Histogramme")
+curve(dnorm(x), col="red", add=TRUE)
+
+qqnorm(normalized_deviations)
+qqline(normalized_deviations, col="red")
+```
 
 **Ex9** Donner les intervalles de confiance de niveau 0.90 pour le paramètre $\theta$.
 
